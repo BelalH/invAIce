@@ -1,4 +1,5 @@
 "use client";
+import { use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Download, Send, CreditCard, AlertTriangle } from "lucide-react";
@@ -10,8 +11,8 @@ import { DUMMY_INVOICES, DUMMY_PROFILE } from "@/lib/dummy/data";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
-export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const invoice = DUMMY_INVOICES.find((i) => i.id === id) ?? DUMMY_INVOICES[0];
 

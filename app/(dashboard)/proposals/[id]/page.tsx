@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Send, Eye, ExternalLink, Copy, Calendar, Clock, FileText, CreditCard } from "lucide-react";
@@ -12,8 +12,8 @@ import { DUMMY_PROPOSALS, DUMMY_INVOICES } from "@/lib/dummy/data";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
-export default function ProposalDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function ProposalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const proposal = DUMMY_PROPOSALS.find((p) => p.id === id) ?? DUMMY_PROPOSALS[0];
   const invoice = DUMMY_INVOICES.find((i) => i.proposal_id === id);

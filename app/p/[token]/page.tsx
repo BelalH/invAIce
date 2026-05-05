@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { Download, CreditCard, CheckCircle2, ChevronDown, ChevronUp, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -9,8 +9,8 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export default function PublicProposalPage({ params }: { params: { token: string } }) {
-  const { token } = params;
+export default function PublicProposalPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params);
   const proposal = DUMMY_PROPOSALS.find((p) => p.public_token === token) ?? DUMMY_PROPOSALS[0];
   const [showTerms, setShowTerms] = useState(false);
 
