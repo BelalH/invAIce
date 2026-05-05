@@ -44,7 +44,7 @@ export function Sidebar() {
       <div className="px-3 pt-4 pb-2">
         <Button
           asChild
-          className="w-full h-9 gradient-brand text-white border-0 shadow-sm text-xs font-medium gap-1.5"
+          className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm text-xs font-medium gap-1.5"
         >
           <Link href="/proposals/new">
             <PlusCircle className="w-3.5 h-3.5" />

@@ -40,7 +40,7 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
-        <Button asChild className="gradient-brand text-white border-0 shadow-sm gap-2 h-9">
+        <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm gap-2 h-9">
           <Link href="/proposals/new">
             <PlusCircle className="w-4 h-4" />
             New Proposal

@@ -31,7 +31,7 @@ export default function ProposalsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Proposals</h1>
           <p className="text-sm text-gray-500 mt-0.5">{DUMMY_PROPOSALS.length} total engagements</p>
         </div>
-        <Button asChild className="gradient-brand text-white border-0 shadow-sm gap-2 h-9">
+        <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm gap-2 h-9">
           <Link href="/proposals/new">
             <PlusCircle className="w-4 h-4" />
             New Proposal
