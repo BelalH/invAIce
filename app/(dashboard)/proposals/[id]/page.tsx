@@ -1,46 +1,36 @@
-"use client";
-
-import { use, useState } from "react";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Send, Eye, ExternalLink, Copy, Calendar, Clock, FileText, CreditCard } from "lucide-react";
+import { ArrowLeft, Send, Eye, ExternalLink, Calendar, Clock, FileText, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { DUMMY_PROPOSALS, DUMMY_INVOICES } from "@/lib/dummy/data";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/server";
+import { getProposalById } from "@/lib/supabase/proposals";
+import { CopyLinkButton } from "@/components/proposals/copy-link-button";
 
-export default function ProposalDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const router = useRouter();
-  const proposal = DUMMY_PROPOSALS.find((p) => p.id === id) ?? DUMMY_PROPOSALS[0];
-  const invoice = DUMMY_INVOICES.find((i) => i.proposal_id === id);
-  const [copying, setCopying] = useState(false);
-
-  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/p/${proposal.public_token}`;
-
-  async function copyLink() {
-    await navigator.clipboard.writeText(publicUrl);
-    setCopying(true);
-    toast.success("Client link copied");
-    setTimeout(() => setCopying(false), 2000);
-  }
+export default async function ProposalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const proposal = await getProposalById(supabase, id);
+  if (!proposal) notFound();
 
   const totalValue = proposal.rate_type === "monthly"
     ? proposal.rate_amount * (proposal.payment_schedule?.length || 3)
     : proposal.rate_amount;
 
+  const publicUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/p/${proposal.public_token}`;
+
   return (
     <div className="p-8 max-w-5xl mx-auto">
       {/* Back */}
-      <button
-        onClick={() => router.push("/proposals")}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-5 transition-colors animate-fade-in"
+      <Link
+        href="/proposals"
+        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-5 transition-colors animate-fade-in w-fit"
       >
         <ArrowLeft className="w-4 h-4" /> Back to proposals
-      </button>
+      </Link>
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6 animate-fade-in">
@@ -56,31 +46,14 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs gap-1.5"
-            onClick={copyLink}
-          >
-            <Copy className="w-3.5 h-3.5" />
-            {copying ? "Copied!" : "Copy link"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="h-8 text-xs gap-1.5"
-          >
+          <CopyLinkButton publicUrl={publicUrl} />
+          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5">
             <Link href={`/p/${proposal.public_token}`} target="_blank">
               <ExternalLink className="w-3.5 h-3.5" />
               Preview
             </Link>
           </Button>
-          <Button
-            size="sm"
-            className="h-8 text-xs gradient-brand text-white border-0 gap-1.5"
-            onClick={() => toast.info("PDF generation requires Puppeteer — not available in demo")}
-          >
+          <Button size="sm" className="h-8 text-xs gradient-brand text-white border-0 gap-1.5" disabled>
             <Send className="w-3.5 h-3.5" />
             Send to client
           </Button>
@@ -90,8 +63,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-4 animate-slide-up">
-
-          {/* Overview */}
           <Card className="border-gray-100 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-gray-900">Engagement Overview</CardTitle>
@@ -108,25 +79,26 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
                 </div>
               )}
 
-              <Separator />
-
               {proposal.deliverables && proposal.deliverables.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Deliverables</p>
-                  <div className="space-y-2">
-                    {proposal.deliverables.map((d, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-5 h-5 rounded-full gradient-brand flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-white text-xs font-bold">{i + 1}</span>
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Deliverables</p>
+                    <div className="space-y-2">
+                      {proposal.deliverables.map((d, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="w-5 h-5 rounded-full gradient-brand flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-white text-xs font-bold">{i + 1}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{d.item}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{d.description}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{d.item}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{d.description}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {proposal.next_steps && (
@@ -148,7 +120,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
             </CardContent>
           </Card>
 
-          {/* Terms */}
           {proposal.terms_and_conditions && (
             <Card className="border-gray-100 shadow-sm">
               <CardHeader className="pb-2">
@@ -188,22 +159,13 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
               )}
               <Separator />
               {proposal.stripe_payment_link_url ? (
-                <Button
-                  asChild
-                  size="sm"
-                  className="w-full h-8 text-xs gradient-brand text-white border-0 gap-1.5"
-                >
+                <Button asChild size="sm" className="w-full h-8 text-xs gradient-brand text-white border-0 gap-1.5">
                   <a href={proposal.stripe_payment_link_url} target="_blank">
                     <CreditCard className="w-3.5 h-3.5" /> Pay online
                   </a>
                 </Button>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-8 text-xs gap-1.5"
-                  onClick={() => toast.info("Connect Stripe to generate payment links")}
-                >
+                <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1.5" disabled>
                   <CreditCard className="w-3.5 h-3.5" /> Create payment link
                 </Button>
               )}
@@ -233,7 +195,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
             </CardContent>
           </Card>
 
-          {/* Tracking */}
+          {/* Activity */}
           <Card className="border-gray-100 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-gray-900">Activity</CardTitle>
@@ -255,27 +217,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
               ))}
             </CardContent>
           </Card>
-
-          {/* Linked invoice */}
-          {invoice && (
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-gray-900">Linked Invoice</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Link
-                  href={`/invoices/${invoice.id}`}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div>
-                    <p className="text-xs font-mono font-medium text-gray-700">{invoice.invoice_number}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(invoice.total, invoice.currency)}</p>
-                  </div>
-                  <StatusBadge status={invoice.status} />
-                </Link>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>

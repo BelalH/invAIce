@@ -16,7 +16,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import type { Proposal } from "@/types/proposal";
-import { DUMMY_PROPOSALS } from "@/lib/dummy/data";
+import { createClient } from "@/lib/supabase/client";
+import { createProposal } from "@/lib/supabase/proposals";
 
 const EXAMPLE_PROMPTS = [
   { label: "Strategy Sprint", prompt: "Proposal for Müller GmbH. 3-month strategy consulting to redesign their go-to-market for the DACH region. Monthly workshops + weekly check-ins. €8,000/month. Starting July 2026. Client: Anna Müller, anna@muller.de" },
@@ -171,12 +172,35 @@ export default function NewProposalPage() {
   }
 
   async function handleSave() {
+    if (!generated) return;
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSaving(false);
-    toast.success("Proposal saved");
-    // In real app: persist to DB and get ID back
-    router.push(`/proposals/${DUMMY_PROPOSALS[0].id}`);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      const proposal = await createProposal(supabase, user.id, {
+        ...generated,
+        original_prompt: prompt,
+        status: "draft",
+        payment_schedule: generated.payment_schedule ?? [],
+        deliverables: generated.deliverables ?? [],
+        rate_amount: generated.rate_amount ?? 0,
+        currency: generated.currency ?? "EUR",
+        rate_type: generated.rate_type ?? "project",
+        payment_structure: generated.payment_structure ?? "one-time",
+        client_name: generated.client_name ?? "",
+        title: generated.title ?? "Untitled Proposal",
+      });
+
+      toast.success("Proposal saved");
+      router.push(`/proposals/${proposal.id}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save proposal");
+    } finally {
+      setSaving(false);
+    }
   }
 
 

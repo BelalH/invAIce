@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { FileText, ArrowRight, Globe, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 
 const FEATURES = [
   "AI-generated proposals in under 60 seconds",
@@ -24,16 +25,48 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  function validatePassword(pw: string): string | null {
+    if (pw.length < 8) return "At least 8 characters";
+    if (!/[0-9]/.test(pw)) return "Must include a number";
+    if (!/[^A-Za-z0-9]/.test(pw)) return "Must include a special character";
+    return null;
+  }
+
+  const passwordError = password ? validatePassword(password) : null;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    const err = validatePassword(password);
+    if (err) {
+      toast.error(err);
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: `${location.origin}/auth/callback`,
+      },
+    });
     setLoading(false);
-    router.push("/onboarding");
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Check your email to confirm your account");
+    router.push("/login");
+  }
+
+  async function handleGoogle() {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${location.origin}/auth/callback` },
+    });
+    if (error) toast.error(error.message);
   }
 
   return (
@@ -81,7 +114,7 @@ export default function SignupPage() {
             <Button
               variant="outline"
               className="w-full mb-4 h-10 text-sm font-medium gap-2"
-              onClick={() => toast.info("Google OAuth not configured in demo mode")}
+              onClick={handleGoogle}
             >
               <Globe className="w-4 h-4" />
               Continue with Google
@@ -125,10 +158,13 @@ export default function SignupPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 8 characters"
+                  placeholder="Min. 8 chars, number & symbol"
                   required
-                  className="h-10"
+                  className={`h-10 ${passwordError ? "border-red-400 focus-visible:ring-red-400" : ""}`}
                 />
+                {passwordError && (
+                  <p className="text-xs text-red-500">{passwordError}</p>
+                )}
               </div>
               <Button
                 type="submit"

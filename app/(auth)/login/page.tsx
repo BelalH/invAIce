@@ -9,23 +9,35 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { FileText, ArrowRight, Globe } from "lucide-react";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("sarah@muellerconsulting.de");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     router.push("/dashboard");
+    router.refresh();
   }
 
-  function handleGoogle() {
-    toast.info("Google OAuth not configured in demo mode");
+  async function handleGoogle() {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${location.origin}/auth/callback` },
+    });
+    if (error) toast.error(error.message);
   }
 
   return (
@@ -77,7 +89,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-xs font-medium text-gray-600">Password</Label>
-                <Link href="#" className="text-xs text-brand-600 hover:underline">Forgot password?</Link>
+                <Link href="/forgot-password" className="text-xs text-brand-600 hover:underline">Forgot password?</Link>
               </div>
               <Input
                 id="password"

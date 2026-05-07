@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -11,11 +12,11 @@ import {
   PlusCircle,
   ChevronRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { initials } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DUMMY_PROFILE } from "@/lib/dummy/data";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -27,6 +28,22 @@ const NAV = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  const displayName = user?.user_metadata?.full_name ?? user?.email ?? "";
+  const displayEmail = user?.email ?? "";
 
   return (
     <aside className="w-60 h-screen flex flex-col bg-white border-r border-gray-100 shrink-0 sticky top-0">
@@ -84,18 +101,18 @@ export function Sidebar() {
         <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer group">
           <Avatar className="w-7 h-7">
             <AvatarFallback className="gradient-brand text-white text-xs font-semibold">
-              {initials(DUMMY_PROFILE.full_name)}
+              {initials(displayName)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-gray-900 truncate">{DUMMY_PROFILE.full_name}</p>
-            <p className="text-xs text-gray-400 truncate">{DUMMY_PROFILE.email}</p>
+            <p className="text-xs font-semibold text-gray-900 truncate">{displayName}</p>
+            <p className="text-xs text-gray-400 truncate">{displayEmail}</p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-            onClick={() => router.push("/login")}
+            onClick={handleSignOut}
             title="Sign out"
           >
             <LogOut className="w-3.5 h-3.5 text-gray-400" />
