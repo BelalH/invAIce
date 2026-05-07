@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Send, Eye, ExternalLink, Calendar, Clock, FileText, CreditCard } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +10,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { getProposalById } from "@/lib/supabase/proposals";
 import { CopyLinkButton } from "@/components/proposals/copy-link-button";
+import { CreatePaymentLinkButton } from "@/components/proposals/create-payment-link-button";
 
 export default async function ProposalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -165,9 +167,7 @@ export default async function ProposalDetailPage({ params }: { params: Promise<{
                   </a>
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1.5" disabled>
-                  <CreditCard className="w-3.5 h-3.5" /> Create payment link
-                </Button>
+                <CreatePaymentLinkButton proposalId={proposal.id} />
               )}
             </CardContent>
           </Card>
