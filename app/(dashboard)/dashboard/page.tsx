@@ -1,34 +1,25 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, TrendingUp, Clock, FileText, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { DUMMY_PROPOSALS, DUMMY_INVOICES } from "@/lib/dummy/data";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/server";
+import { getProposals } from "@/lib/supabase/proposals";
 
-function getMetrics() {
-  const now = new Date();
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  const revenueThisMonth = DUMMY_INVOICES.filter(
-    (i) => i.status === "paid" && new Date(i.paid_at!) >= thisMonthStart
-  ).reduce((sum, i) => sum + i.paid_amount, 0);
+  const proposals = await getProposals(supabase, user.id);
 
-  const outstanding = DUMMY_INVOICES.filter(
-    (i) => i.status === "unpaid" || i.status === "overdue"
-  ).reduce((sum, i) => sum + i.total, 0);
-
-  const openProposals = DUMMY_PROPOSALS.filter(
+  const openProposals = proposals.filter(
     (p) => p.status === "sent" || p.status === "viewed"
   ).length;
 
-  return { revenueThisMonth, outstanding, openProposals };
-}
-
-export default function DashboardPage() {
-  const { revenueThisMonth, outstanding, openProposals } = getMetrics();
-  const recentProposals = DUMMY_PROPOSALS.slice(0, 5);
-  const recentInvoices = DUMMY_INVOICES.slice(0, 5);
+  const recentProposals = proposals.slice(0, 5);
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -53,7 +44,7 @@ export default function DashboardPage() {
         {[
           {
             title: "Revenue This Month",
-            value: formatCurrency(revenueThisMonth),
+            value: formatCurrency(0),
             icon: TrendingUp,
             color: "text-emerald-600",
             bg: "bg-emerald-50",
@@ -61,7 +52,7 @@ export default function DashboardPage() {
           },
           {
             title: "Outstanding",
-            value: formatCurrency(outstanding),
+            value: formatCurrency(0),
             icon: Clock,
             color: "text-amber-600",
             bg: "bg-amber-50",
@@ -149,33 +140,11 @@ export default function DashboardPage() {
             </Link>
           </div>
           <Card className="border-gray-100 shadow-sm overflow-hidden">
-            {recentInvoices.length === 0 ? (
-              <CardContent className="py-12 text-center">
-                <p className="text-sm text-gray-400">No invoices yet</p>
-              </CardContent>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {recentInvoices.map((inv) => (
-                  <Link
-                    key={inv.id}
-                    href={`/invoices/${inv.id}`}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-mono font-medium text-gray-500">{inv.invoice_number}</p>
-                        <StatusBadge status={inv.status} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-900 truncate mt-0.5">{inv.client_company || inv.client_name}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(inv.total, inv.currency)}</p>
-                      <p className="text-xs text-gray-400">Due {formatDate(inv.due_date)}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+            <CardContent className="py-12 text-center">
+              <FileText className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-600 mb-1">No invoices yet</p>
+              <p className="text-xs text-gray-400">Invoices will appear here once you convert a signed proposal.</p>
+            </CardContent>
           </Card>
         </div>
       </div>
